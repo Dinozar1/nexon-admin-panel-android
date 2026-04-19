@@ -27,20 +27,23 @@ fun DashboardScreen(
     viewModel: DashboardViewModel,
     onConfigClick: (String) -> Unit
 ) {
+    // 1. STATE OBSERVERS: Automatically redraw UI when the internal state changes
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // Stany dla modali
+    // Local states controlling the visibility of popup dialogs
     var showSettingsModal by remember { mutableStateOf(false) }
     var showAddModal by remember { mutableStateOf(false) }
     var configToDelete by remember { mutableStateOf<String?>(null) }
 
+    // 2. EFFECT LISTENER: Listen for one-time Toast events (e.g., success messages)
     LaunchedEffect(Unit) {
         viewModel.toastMessage.collect { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         }
     }
 
+    // 3. MAIN LAYOUT
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -51,9 +54,11 @@ fun DashboardScreen(
                     titleContentColor = MaterialTheme.colorScheme.primary
                 ),
                 actions = {
+                    // Settings icon for terminal credentials
                     IconButton(onClick = { showSettingsModal = true }) {
                         Icon(Icons.Default.Settings, contentDescription = "Ustawienia")
                     }
+                    // Manual refresh icon
                     IconButton(onClick = { viewModel.fetchConfigs() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Odśwież")
                     }
@@ -61,6 +66,7 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
+            // Main button to create a new shop configuration
             FloatingActionButton(
                 onClick = { showAddModal = true },
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -70,12 +76,15 @@ fun DashboardScreen(
             }
         }
     ) { innerPadding ->
+        // 4. CONTENT AREA: Conditionally render based on the current DashboardState
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             when (val state = uiState) {
                 is DashboardState.Loading -> {
+                    // Show spinner while fetching data
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 is DashboardState.Success -> {
+                    // Handle empty list scenario gracefully
                     if (state.configs.isEmpty()) {
                         Text(
                             text = "Brak konfiguracji. Dodaj pierwszą!",
@@ -83,6 +92,7 @@ fun DashboardScreen(
                             color = MaterialTheme.colorScheme.secondary
                         )
                     } else {
+                        // Dynamically render the list of configurations using a memory-efficient LazyColumn
                         LazyColumn(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -90,21 +100,26 @@ fun DashboardScreen(
                             items(state.configs) { config ->
                                 ConfigCard(
                                     config = config,
-                                    onClick = { onConfigClick(config.configname) },
-                                    onDelete = { configToDelete = config.configname } // Otwiera okno potwierdzenia
+                                    onClick = { onConfigClick(config.configname) }, // Navigate to Details
+                                    onDelete = { configToDelete = config.configname } // Open delete confirmation
                                 )
                             }
                         }
                     }
                 }
                 is DashboardState.Error -> {
+                    // Display error message from the backend or network
                     Text(state.message, modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.error)
                 }
             }
         }
     }
 
-    // Modal Ustawień Terminala
+    // ==========================================
+    // DIALOGS SECTION
+    // ==========================================
+
+    // Terminal Settings Modal (Change login/password)
     if (showSettingsModal) {
         TerminalSettingsModal(
             onDismiss = { showSettingsModal = false },
@@ -119,7 +134,7 @@ fun DashboardScreen(
         )
     }
 
-    // Modal Dodawania Konfiguracji
+    // Add New Configuration Modal
     if (showAddModal) {
         AddConfigModal(
             onDismiss = { showAddModal = false },
@@ -130,7 +145,7 @@ fun DashboardScreen(
         )
     }
 
-    // Modal Potwierdzenia Usunięcia
+    // Delete Confirmation Modal
     configToDelete?.let { configId ->
         AlertDialog(
             onDismissRequest = { configToDelete = null },
@@ -155,9 +170,10 @@ fun DashboardScreen(
 }
 
 // ==========================================
-// FUNKCJE POMOCNICZE (MODALE I KARTY)
+// REUSABLE COMPONENTS
 // ==========================================
 
+// Dialog for updating physical terminal credentials
 @Composable
 fun TerminalSettingsModal(
     onDismiss: () -> Unit,
@@ -219,13 +235,14 @@ fun TerminalSettingsModal(
     )
 }
 
+// Dialog for creating a new shop configuration
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddConfigModal(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
     var name by remember { mutableStateOf("") }
     var currency by remember { mutableStateOf("PLN") }
 
-    // Stany dla Dropdown Menu
+    // Dropdown state management
     var expanded by remember { mutableStateOf(false) }
     val currencyOptions = listOf("PLN", "USD", "EUR")
 
@@ -235,7 +252,7 @@ fun AddConfigModal(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
-                // Pole Nazwy
+                // Shop Name Input
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -244,7 +261,7 @@ fun AddConfigModal(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
                     singleLine = true
                 )
 
-                // Pole Waluty (Dropdown)
+                // Currency Selection Dropdown
                 ExposedDropdownMenuBox(
                     expanded = expanded,
                     onExpandedChange = { expanded = !expanded }
@@ -252,7 +269,7 @@ fun AddConfigModal(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
                     OutlinedTextField(
                         value = currency,
                         onValueChange = {},
-                        readOnly = true, // Użytkownik nie może wpisać tekstu z palca
+                        readOnly = true, // Force user to use the dropdown instead of typing
                         label = { Text("Waluta") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
@@ -288,10 +305,11 @@ fun AddConfigModal(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
     )
 }
 
+// Visual Card representing a single configuration in the list
 @Composable
 fun ConfigCard(config: ConfigItem, onClick: () -> Unit, onDelete: () -> Unit) {
     Card(
-        onClick = onClick,
+        onClick = onClick, // Navigate when the card itself is clicked
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -299,7 +317,7 @@ fun ConfigCard(config: ConfigItem, onClick: () -> Unit, onDelete: () -> Unit) {
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
 
-            // Wyraźny przycisk Usuwania (Czerwony kosz)
+            // Distinctive Delete Button (Red Trash Can)
             IconButton(
                 onClick = onDelete,
                 modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
@@ -307,7 +325,7 @@ fun ConfigCard(config: ConfigItem, onClick: () -> Unit, onDelete: () -> Unit) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Usuń Sklep",
-                    tint = MaterialTheme.colorScheme.error // Używamy koloru błędu (czerwonego)
+                    tint = MaterialTheme.colorScheme.error
                 )
             }
 
@@ -321,6 +339,7 @@ fun ConfigCard(config: ConfigItem, onClick: () -> Unit, onDelete: () -> Unit) {
                         modifier = Modifier.weight(1f)
                     )
 
+                    // Display currency badge
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.background
@@ -335,6 +354,7 @@ fun ConfigCard(config: ConfigItem, onClick: () -> Unit, onDelete: () -> Unit) {
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
+                // Format timestamp safely, removing trailing time strings if present
                 Text(
                     text = "Utworzono: ${config.creationtimestamp?.substringBefore("T") ?: "N/A"}",
                     fontSize = 12.sp,

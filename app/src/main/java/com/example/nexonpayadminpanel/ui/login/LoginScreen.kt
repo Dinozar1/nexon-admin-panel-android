@@ -19,23 +19,24 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
-    onLoginSuccess: () -> Unit // Funkcja do wywołania, gdy backend powie "OK"
+    onLoginSuccess: () -> Unit // Callback triggered when the backend returns "OK"
 ) {
-    // Obserwujemy stan z ViewModelu
+    // 1. STATE OBSERVATION: Listen to the ViewModel's state (Loading, Success, Error)
     val uiState by viewModel.uiState.collectAsState()
 
-    // Stany lokalne pól tekstowych
+    // 2. LOCAL STATE: Store what the user is currently typing
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    // Reagujemy na udane logowanie
+    // 3. SIDE EFFECTS: React to state changes (e.g., successful login)
     LaunchedEffect(uiState) {
         if (uiState is LoginState.Success) {
-            onLoginSuccess()
-            viewModel.resetState() // Resetujemy, by nie zalogowało nas znowu przypadkiem po wciśnięciu 'Wstecz'
+            onLoginSuccess() // Trigger navigation to the Dashboard
+            viewModel.resetState() // Prevent accidental re-navigation if user presses 'Back'
         }
     }
 
+    // 4. UI LAYOUT
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
@@ -47,7 +48,7 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Tytuł
+            // Header text
             Text(
                 text = "Panel Admina",
                 fontSize = 32.sp,
@@ -61,7 +62,7 @@ fun LoginScreen(
                 modifier = Modifier.padding(bottom = 32.dp)
             )
 
-            // Wyświetlanie błędu
+            // Dynamic error message display
             if (uiState is LoginState.Error) {
                 Text(
                     text = (uiState as LoginState.Error).message,
@@ -70,7 +71,7 @@ fun LoginScreen(
                 )
             }
 
-            // Pole E-mail
+            // Email input field
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -87,14 +88,14 @@ fun LoginScreen(
                 )
             )
 
-            // Pole Hasło
+            // Password input field (hides characters)
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text("Hasło") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Password Icon") },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = PasswordVisualTransformation(), // Masks input as '***'
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -105,15 +106,16 @@ fun LoginScreen(
                 )
             )
 
-            // Przycisk Logowania
+            // Login submit button
             Button(
                 onClick = { viewModel.login(email, password) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                enabled = uiState !is LoginState.Loading
+                enabled = uiState !is LoginState.Loading // Disable button while fetching
             ) {
+                // Show loader if waiting for API, otherwise show text
                 if (uiState is LoginState.Loading) {
                     CircularProgressIndicator(
                         color = MaterialTheme.colorScheme.onPrimary,

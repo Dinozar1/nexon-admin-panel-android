@@ -26,27 +26,40 @@ import com.example.nexonpayadminpanel.ui.login.LoginScreen
 import com.example.nexonpayadminpanel.ui.login.LoginViewModel
 import com.example.nexonpayadminpanel.ui.theme.NexonPayAdminPanelTheme
 
+// The main entry point of the Android application
 class MainActivity : ComponentActivity() {
+
+    // Called automatically when the app is launched
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge() // Allows the app to draw under the status bar and navigation bar
+
+        // Sets the Jetpack Compose UI content for this activity
         setContent {
             NexonPayAdminPanelTheme {
+
+                // The "driver" that manages app navigation and the back stack
                 val navController = rememberNavController()
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+
+                    // The "map" connecting route names to actual Composable screens
                     NavHost(
                         navController = navController,
                         startDestination = AdminDestinations.Login.name,
                         modifier = Modifier.padding(innerPadding)
                     ) {
 
-                        // --- EKRAN 1: LOGOWANIE ---
+                        // --- SCREEN 1: LOGIN ---
                         composable(route = AdminDestinations.Login.name) {
+                            // Inject ViewModel using our custom Factory
                             val loginViewModel: LoginViewModel = viewModel(factory = AdminViewModelProvider.Factory)
+
                             LoginScreen(
                                 viewModel = loginViewModel,
                                 onLoginSuccess = {
+                                    // Navigate to Dashboard and clear the back stack
+                                    // so the user can't press 'Back' to return to the login screen
                                     navController.navigate(AdminDestinations.Dashboard.name) {
                                         popUpTo(AdminDestinations.Login.name) { inclusive = true }
                                     }
@@ -54,36 +67,39 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // --- EKRAN 2: DASHBOARD (Lista sklepów) ---
+                        // --- SCREEN 2: DASHBOARD (Shop List) ---
                         composable(route = AdminDestinations.Dashboard.name) {
                             val dashboardViewModel: DashboardViewModel = viewModel(factory = AdminViewModelProvider.Factory)
+
                             DashboardScreen(
                                 viewModel = dashboardViewModel,
                                 onConfigClick = { configName ->
-                                    // FIX: Teraz faktycznie nawigujemy do szczegółów, przekazując nazwę
+                                    // Navigate to details screen, passing the selected config name as a URL argument
                                     navController.navigate(AdminDestinations.ConfigDetails.name + "/$configName")
                                 }
                             )
                         }
 
-                        // --- EKRAN 3: SZCZEGÓŁY KONFIGURACJI (Statystyki, Portfele, Oko) ---
+                        // --- SCREEN 3: CONFIG DETAILS (Stats, Wallets, Eye) ---
+                        // Defines a dynamic route expecting a String argument named "configName"
                         composable(
                             route = AdminDestinations.ConfigDetails.name + "/{configName}",
                             arguments = listOf(navArgument("configName") { type = NavType.StringType })
                         ) { backStackEntry ->
-                            // Wyciągamy nazwę configu z argumentów nawigacji
+
+                            // Extract the argument from the navigation route
                             val configName = backStackEntry.arguments?.getString("configName") ?: ""
 
                             val detailsViewModel: ConfigDetailsViewModel = viewModel(factory = AdminViewModelProvider.Factory)
 
-                            // Załadowanie danych przy wejściu na ekran
+                            // Trigger data fetch as soon as this screen is opened with a specific config name
                             LaunchedEffect(configName) {
                                 detailsViewModel.loadInitialData(configName)
                             }
 
                             ConfigDetailsScreen(
                                 viewModel = detailsViewModel,
-                                onBack = { navController.popBackStack() }
+                                onBack = { navController.popBackStack() } // Navigate to the previous screen
                             )
                         }
                     }

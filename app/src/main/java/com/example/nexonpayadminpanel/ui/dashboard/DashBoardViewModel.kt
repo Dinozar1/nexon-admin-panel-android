@@ -20,19 +20,23 @@ class DashboardViewModel(
     private val apiService: ApiService
 ) : ViewModel() {
 
+    // Main UI state (Loading, Success with data, Error). Replays the current state to the UI.
     private val _uiState = MutableStateFlow<DashboardState>(DashboardState.Loading)
     val uiState: StateFlow<DashboardState> = _uiState.asStateFlow()
 
-    // Używamy SharedFlow do wysyłania jednorazowych zdarzeń (np. komunikatu po zmianie hasła)
+    // One-time event stream (SharedFlow). Used for Toasts so they don't reappear on screen rotation.
     private val _toastMessage = MutableSharedFlow<String>()
     val toastMessage: SharedFlow<String> = _toastMessage.asSharedFlow()
 
+    // Automatically fetch data from the API as soon as the ViewModel is created
     init {
         fetchConfigs()
     }
 
+    // Fetches the list of all configurations (shops) for the Dashboard
     fun fetchConfigs() {
         _uiState.value = DashboardState.Loading
+
         viewModelScope.launch {
             try {
                 val response = apiService.getConfigs()
@@ -48,8 +52,9 @@ class DashboardViewModel(
         }
     }
 
-    // --- NOWE FUNKCJE DO ZARZĄDZANIA TERMINALEM ---
+    // --- TERMINAL MANAGEMENT FUNCTIONS ---
 
+    // Updates the login credentials for physical terminal devices
     fun changeTerminalLogin(newLogin: String) {
         if (newLogin.isBlank()) return
 
@@ -68,6 +73,7 @@ class DashboardViewModel(
         }
     }
 
+    // Updates the password for physical terminal devices
     fun changeTerminalPassword(newPassword: String) {
         if (newPassword.isBlank()) return
 
@@ -86,6 +92,7 @@ class DashboardViewModel(
         }
     }
 
+    // Creates a new configuration (shop profile)
     fun addNewConfig(name: String, currency: String) {
         if (name.isBlank()) return
 
@@ -94,7 +101,7 @@ class DashboardViewModel(
                 val response = apiService.addNewConfig(AddConfigRequest(name, currency))
                 if (response.isSuccessful) {
                     _toastMessage.emit("Dodano nową konfigurację!")
-                    fetchConfigs() // Odświeżamy listę
+                    fetchConfigs() // Auto-refresh the list after a successful addition
                 } else {
                     _toastMessage.emit("Błąd dodawania: ${response.code()}")
                 }
@@ -104,13 +111,14 @@ class DashboardViewModel(
         }
     }
 
+    // Deletes an existing configuration
     fun deleteConfig(configId: String) {
         viewModelScope.launch {
             try {
                 val response = apiService.deleteConfig(DeleteConfigRequest(configId))
                 if (response.isSuccessful) {
                     _toastMessage.emit("Usunięto konfigurację: $configId")
-                    fetchConfigs() // Odświeżamy listę
+                    fetchConfigs() // Auto-refresh the list after a successful deletion
                 } else {
                     _toastMessage.emit("Błąd usuwania.")
                 }
@@ -119,6 +127,4 @@ class DashboardViewModel(
             }
         }
     }
-
-
 }

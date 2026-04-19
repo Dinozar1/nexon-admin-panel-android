@@ -22,7 +22,7 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 object RetrofitClient {
     private const val BASE_URL = "https://api.nexonpay.pl/"
 
-    // Słoik na ciastka trzymający nasz Refresh Token ('laf')
+    // In-memory storage for cookies (holds the 'laf' refresh token)
     private val cookieJar = object : CookieJar {
         private val cookieStore = mutableMapOf<String, List<Cookie>>()
 
@@ -35,42 +35,44 @@ object RetrofitClient {
         }
     }
 
-    // --- MAGIA DEKODOWANIA JWT ---
+    // --- JWT DECODING LOGIC ---
+    // Checks if the JWT token is expired by reading its internal payload
     private fun isTokenExpired(token: String?): Boolean {
         if (token.isNullOrEmpty()) return true
         return try {
             val parts = token.split(".")
-            if (parts.size != 3) return true // Niepoprawny format JWT
+            if (parts.size != 3) return true // Invalid format
 
-            // Rozkodowujemy Payload (środkowa część tokena)
+            // Decode the middle part (payload) of the JWT
             val payload = String(Base64.decode(parts[1], Base64.URL_SAFE))
             val jsonObject = JSONObject(payload)
 
-            // Pobieramy czas wygaśnięcia (w sekundach)
+            // Read the expiration timestamp
             val exp = jsonObject.optLong("exp", 0)
             if (exp == 0L) return true
 
-            // Sprawdzamy, czy czas wygaśnięcia minie za mniej niż 10 sekund (bufor bezpieczeństwa)
+            // Expired if less than 10 seconds remain
             val currentTimeSeconds = System.currentTimeMillis() / 1000
             exp <= (currentTimeSeconds + 10)
         } catch (e: Exception) {
-            Log.e("JWT_DECODE", "Błąd dekodowania JWT: ${e.message}")
-            true // W razie błędu zakładamy, że wygasł
+            Log.e("JWT_DECODE", "Error decoding JWT: ${e.message}")
+            true // Assume expired on error
         }
     }
 
-    // Zsynchronizowana funkcja do odświeżania tokena (żeby 5 requestów naraz nie odpaliło 5 odświeżeń)
+    // Safely requests a new token. @Synchronized prevents multiple requests at once.
     @Synchronized
     private fun refreshTokenSync(tokenManager: TokenManager, loggingInterceptor: HttpLoggingInterceptor): String? {
         val currentToken = tokenManager.getAccessToken()
 
-        // Zabezpieczenie: jeśli jakiś inny wątek ułamek sekundy temu już odświeżył token i jest on ważny, to po prostu go zwracamy
+        // Stop if another thread already refreshed the token
         if (!isTokenExpired(currentToken)) {
             return currentToken
         }
 
-        Log.d("API_AUTH", "Token wygasł w payloadzie (lub dostaliśmy 401). Rozpoczynam odświeżanie...")
+        Log.d("API_AUTH", "Token expired. Starting refresh...")
 
+        // Simple client just for the refresh request
         val refreshClient = OkHttpClient.Builder()
             .cookieJar(cookieJar)
             .addInterceptor(loggingInterceptor)
@@ -82,6 +84,7 @@ object RetrofitClient {
             .build()
 
         try {
+            // Block thread and wait for the new token
             val response = refreshClient.newCall(request).execute()
             if (response.isSuccessful) {
                 val bodyString = response.body?.string()
@@ -91,21 +94,23 @@ object RetrofitClient {
                     val newAccessToken = jsonObject.optString("accessToken", "")
 
                     if (success && newAccessToken.isNotEmpty()) {
-                        Log.d("API_AUTH", "Sukces! Pomyślnie odświeżono token.")
-                        tokenManager.saveAccessToken(newAccessToken)
+                        Log.d("API_AUTH", "Token successfully refreshed.")
+                        tokenManager.saveAccessToken(newAccessToken) // Save new token
                         return newAccessToken
                     }
                 }
             }
         } catch (e: Exception) {
-            Log.e("API_AUTH", "Błąd sieci przy odświeżaniu: ${e.message}")
+            Log.e("API_AUTH", "Refresh network error: ${e.message}")
         }
 
-        Log.e("API_AUTH", "Nie udało się odświeżyć tokena. Wylogowuję...")
+        // Logout if refresh fails completely
+        Log.e("API_AUTH", "Refresh failed. Logging out...")
         tokenManager.deleteTokens()
         return null
     }
 
+    // Builds the main API client with all interceptors attached
     fun getClient(tokenManager: TokenManager): ApiService {
         val loggingInterceptor = HttpLoggingInterceptor { message ->
             Log.d("API_NETWORK", message)
@@ -113,14 +118,16 @@ object RetrofitClient {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
-        // 1. AUTENTYKATOR (Koło ratunkowe, gdyby backend zwrócił 401 mimo ważnego payloadu)
+        // FALLBACK: Catches 401 errors from the server and retries with a new token
         val tokenAuthenticator = Authenticator { _, response ->
+            // Don't retry if the refresh or login endpoints fail
             if (response.request.url.encodedPath.contains("refreshToken") || response.request.url.encodedPath.contains("loginAuth")) {
                 return@Authenticator null
             }
 
             val newToken = refreshTokenSync(tokenManager, loggingInterceptor)
             if (newToken != null) {
+                // Retry the original request
                 return@Authenticator response.request.newBuilder()
                     .header("Authorization", "Bearer $newToken")
                     .build()
@@ -128,9 +135,7 @@ object RetrofitClient {
             null
         }
 
-        // =========================================================
-        // SKŁADANIE GŁÓWNEGO KLIENTA
-        // =========================================================
+        // MAIN CLIENT SETUP
         val okHttpClient = OkHttpClient.Builder()
             .cookieJar(cookieJar)
             .authenticator(tokenAuthenticator)
@@ -138,27 +143,26 @@ object RetrofitClient {
             .addInterceptor { chain ->
                 val originalRequest = chain.request()
 
-                // Pomijamy proaktywne sprawdzanie dla logowania i samego odświeżania!
+                // Skip token logic for login and refresh endpoints
                 if (originalRequest.url.encodedPath.contains("loginAuth") || originalRequest.url.encodedPath.contains("refreshToken")) {
                     return@addInterceptor chain.proceed(originalRequest)
                 }
 
                 var token = tokenManager.getAccessToken()
 
-                // 2. PROAKTYWNE SPRAWDZANIE JWT (Twój odpowiednik z Reacta!)
-                // Zanim w ogóle uderzymy do API, sprawdzamy, czy token nie jest przeterminowany.
+                // PROACTIVE CHECK: Refresh token *before* sending if it's expired
                 if (isTokenExpired(token)) {
-                    Log.d("API_AUTH", "Proaktywny Interceptor wykrył wygasły token!")
-                    // Wstrzymujemy zapytanie i odświeżamy token synchronicznie
+                    Log.d("API_AUTH", "Proactive check: Token expired!")
                     token = refreshTokenSync(tokenManager, loggingInterceptor)
                 }
 
+                // Attach token to headers
                 val requestBuilder = originalRequest.newBuilder()
                 token?.let {
                     requestBuilder.header("Authorization", "Bearer $it")
                 }
 
-                chain.proceed(requestBuilder.build())
+                chain.proceed(requestBuilder.build()) // Send the request
             }
             .build()
 

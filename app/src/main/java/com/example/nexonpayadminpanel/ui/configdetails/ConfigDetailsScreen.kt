@@ -1,3 +1,4 @@
+// app/src/main/java/com/example/nexonpayadminpanel/ui/configdetails/ConfigDetailsScreen.kt
 package com.example.nexonpayadminpanel.ui.configdetails
 
 import android.widget.Toast
@@ -23,17 +24,21 @@ fun ConfigDetailsScreen(
     viewModel: ConfigDetailsViewModel,
     onBack: () -> Unit
 ) {
+    // 1. STATE OBSERVERS: Automatically redraw UI when data changes
     val uiState by viewModel.uiState.collectAsState()
     val balance by viewModel.balance.collectAsState()
     val context = LocalContext.current
 
+    // Local UI states for dialogs
     var showAddModal by remember { mutableStateOf(false) }
     var walletToDelete by remember { mutableStateOf<WalletEntry?>(null) }
 
+    // 2. EVENT LISTENER: Show Android Toasts for success/error messages
     LaunchedEffect(Unit) {
         viewModel.toastMessage.collect { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
     }
 
+    // 3. MAIN LAYOUT STRUCTURE
     Scaffold(
         topBar = {
             TopAppBar(
@@ -45,7 +50,7 @@ fun ConfigDetailsScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                viewModel.loadCryptos()
+                viewModel.loadCryptos() // Pre-load options for the dropdown
                 showAddModal = true
             }) {
                 Icon(Icons.Default.Add, "Dodaj Portfel")
@@ -53,11 +58,13 @@ fun ConfigDetailsScreen(
         }
     ) { padding ->
         if (uiState.isLoading) {
+            // Show loader while API request is pending
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         } else {
+            // 4. LAZY COLUMN: Efficient, scrollable list for dynamic content
             LazyColumn(Modifier.padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
-                // Karta Statystyk i Salda
+                // Top section: Stats and Hidden Balance feature
                 item {
                     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                         Column(Modifier.padding(16.dp)) {
@@ -76,8 +83,8 @@ fun ConfigDetailsScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(text = balance ?: "****", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                                     IconButton(onClick = { viewModel.toggleBalance() }) {
+                                        // Dynamic eye icon based on visibility
                                         Icon(
-                                            // Proste renderowanie ikony zależnie od stanu
                                             imageVector = if (balance == null) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                             contentDescription = "Pokaż saldo"
                                         )
@@ -90,13 +97,12 @@ fun ConfigDetailsScreen(
 
                 item { Text("Podpięte Portfele", fontWeight = FontWeight.Bold, fontSize = 20.sp, modifier = Modifier.padding(top = 16.dp)) }
 
+                // List rendering: iterate through wallets and render cards
                 items(uiState.wallets) { wallet ->
                     WalletCard(
                         wallet = wallet,
                         onDelete = {
-                            // Przekazujemy CAŁY obiekt portfela do stanu,
-                            // aby modal miał dostęp do cryptoId i networkId
-                            walletToDelete = wallet
+                            walletToDelete = wallet // Trigger deletion confirmation dialog
                         }
                     )
                 }
@@ -104,17 +110,21 @@ fun ConfigDetailsScreen(
         }
     }
 
+    // 5. MODALS AND DIALOGS
+
+    // Add Wallet Flow
     if (showAddModal) {
         AddWalletModal(
             viewModel = viewModel,
             onDismiss = { showAddModal = false },
-            onConfirm = { cryptoId, network, pubKey -> // DODANO cryptoId
+            onConfirm = { cryptoId, network, pubKey ->
                 viewModel.addWallet(cryptoId, network, pubKey)
                 showAddModal = false
             }
         )
     }
 
+    // Delete Wallet Confirmation Flow
     walletToDelete?.let { wallet ->
         AlertDialog(
             onDismissRequest = { walletToDelete = null },
@@ -133,11 +143,10 @@ fun ConfigDetailsScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // Przekazujemy komplet danych wymaganych przez backend
                         viewModel.deleteWallet(
-                            cryptoId = wallet.cryptocurrencyname, // np. "Bitcoin"
-                            networkId = wallet.networkname,       // np. "Ethereum Mainnet"
-                            publicKey = wallet.publickey          // Adres portfela
+                            cryptoId = wallet.cryptocurrencyname,
+                            networkId = wallet.networkname,
+                            publicKey = wallet.publickey
                         )
                         walletToDelete = null
                     }
@@ -155,6 +164,7 @@ fun ConfigDetailsScreen(
     }
 }
 
+// Reusable component for a single wallet entry
 @Composable
 fun WalletCard(wallet: WalletEntry, onDelete: () -> Unit) {
     Card(Modifier.fillMaxWidth()) {
@@ -172,6 +182,7 @@ fun WalletCard(wallet: WalletEntry, onDelete: () -> Unit) {
     }
 }
 
+// Cascading form dialog for adding a new wallet
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddWalletModal(
@@ -182,7 +193,7 @@ fun AddWalletModal(
     val cryptos by viewModel.availableCryptos.collectAsState()
     val networks by viewModel.availableNetworks.collectAsState()
 
-    var selectedCryptoFullName by remember { mutableStateOf("") } // Pełna nazwa dla zapisu (np. "Bitcoin")
+    var selectedCryptoFullName by remember { mutableStateOf("") }
     var selectedNetwork by remember { mutableStateOf("") }
     var publicKey by remember { mutableStateOf("") }
 
@@ -195,7 +206,7 @@ fun AddWalletModal(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
-                // 1. Wybór Krypto
+                // Step 1: Crypto selection dropdown
                 ExposedDropdownMenuBox(expanded = cryptoExpanded, onExpandedChange = { cryptoExpanded = !cryptoExpanded }) {
                     OutlinedTextField(
                         value = selectedCryptoFullName, onValueChange = {}, readOnly = true,
@@ -208,12 +219,9 @@ fun AddWalletModal(
                             DropdownMenuItem(
                                 text = { Text(crypto.cryptocurrencyname) },
                                 onClick = {
-                                    // Zapisujemy pełną nazwę do wysłania na serwer
                                     selectedCryptoFullName = crypto.cryptocurrencyname
-
-                                    // Ale sieci pobieramy przy użyciu skrótu (tak jak w dok. API: np. USDT)
+                                    // Trigger API call to fetch networks based on selection
                                     viewModel.loadNetworks(crypto.shortcryptocurrencyname)
-
                                     selectedNetwork = ""
                                     cryptoExpanded = false
                                 }
@@ -222,14 +230,14 @@ fun AddWalletModal(
                     }
                 }
 
-                // 2. Wybór Sieci (Zależny od Krypto)
+                // Step 2: Network selection dropdown (dynamically populated)
                 ExposedDropdownMenuBox(expanded = networkExpanded, onExpandedChange = { if(selectedCryptoFullName.isNotEmpty()) networkExpanded = !networkExpanded }) {
                     OutlinedTextField(
                         value = selectedNetwork, onValueChange = {}, readOnly = true,
                         label = { Text("Wybierz Sieć") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = networkExpanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        enabled = selectedCryptoFullName.isNotEmpty()
+                        enabled = selectedCryptoFullName.isNotEmpty() // Disabled until crypto is selected
                     )
                     ExposedDropdownMenu(expanded = networkExpanded, onDismissRequest = { networkExpanded = false }) {
                         networks.forEach { network ->
@@ -244,6 +252,7 @@ fun AddWalletModal(
                     }
                 }
 
+                // Step 3: Manual public key input
                 OutlinedTextField(
                     value = publicKey, onValueChange = { publicKey = it },
                     label = { Text("Adres (Public Key)") }, modifier = Modifier.fillMaxWidth()
@@ -252,9 +261,8 @@ fun AddWalletModal(
         },
         confirmButton = {
             Button(
-                // WYSYŁAMY PEŁNĄ NAZWĘ (selectedCryptoFullName) ZAMIAST SKRÓTU!
                 onClick = { onConfirm(selectedCryptoFullName, selectedNetwork, publicKey) },
-                enabled = selectedCryptoFullName.isNotEmpty() && selectedNetwork.isNotEmpty() && publicKey.isNotEmpty()
+                enabled = selectedCryptoFullName.isNotEmpty() && selectedNetwork.isNotEmpty() && publicKey.isNotEmpty() // Form validation
             ) { Text("Dodaj") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Anuluj", color = MaterialTheme.colorScheme.primary) } },
