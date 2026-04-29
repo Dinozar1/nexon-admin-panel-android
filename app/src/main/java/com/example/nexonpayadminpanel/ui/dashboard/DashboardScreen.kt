@@ -16,9 +16,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.nexonpayadminpanel.R
 import com.example.nexonpayadminpanel.retrofit.ConfigItem
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,7 +50,7 @@ fun DashboardScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Twoje Konfiguracje", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.dashboard_title), fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.primary
@@ -56,11 +58,11 @@ fun DashboardScreen(
                 actions = {
                     // Settings icon for terminal credentials
                     IconButton(onClick = { showSettingsModal = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Ustawienia")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings_desc))
                     }
                     // Manual refresh icon
                     IconButton(onClick = { viewModel.fetchConfigs() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Odśwież")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh_desc))
                     }
                 }
             )
@@ -72,7 +74,7 @@ fun DashboardScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Dodaj Konfigurację")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_config_desc))
             }
         }
     ) { innerPadding ->
@@ -87,7 +89,7 @@ fun DashboardScreen(
                     // Handle empty list scenario gracefully
                     if (state.configs.isEmpty()) {
                         Text(
-                            text = "Brak konfiguracji. Dodaj pierwszą!",
+                            text = stringResource(R.string.empty_configs_message),
                             modifier = Modifier.align(Alignment.Center),
                             color = MaterialTheme.colorScheme.secondary
                         )
@@ -149,19 +151,19 @@ fun DashboardScreen(
     configToDelete?.let { configId ->
         AlertDialog(
             onDismissRequest = { configToDelete = null },
-            title = { Text("Usunąć konfigurację?", fontWeight = FontWeight.Bold) },
-            text = { Text("Czy na pewno chcesz usunąć sklep '$configId'? Tego nie da się cofnąć.") },
+            title = { Text(stringResource(R.string.delete_config_title), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.delete_config_text, configId)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteConfig(configId)
                     configToDelete = null
                 }) {
-                    Text("Usuń", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.delete_button), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { configToDelete = null }) {
-                    Text("Anuluj", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.cancel_button), color = MaterialTheme.colorScheme.primary)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -185,15 +187,15 @@ fun TerminalSettingsModal(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Ustawienia Terminala", fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(R.string.terminal_settings_title), fontWeight = FontWeight.Bold) },
         text = {
             Column {
-                Text("Możesz zaktualizować dane dostępowe dla terminala.", fontSize = 14.sp, modifier = Modifier.padding(bottom = 16.dp))
+                Text(stringResource(R.string.terminal_settings_subtitle), fontSize = 14.sp, modifier = Modifier.padding(bottom = 16.dp))
 
                 OutlinedTextField(
                     value = newLogin,
                     onValueChange = { newLogin = it },
-                    label = { Text("Nowy Login") },
+                    label = { Text(stringResource(R.string.new_login_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                 )
@@ -202,7 +204,7 @@ fun TerminalSettingsModal(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = newLogin.isNotBlank()
                 ) {
-                    Text("Zmień Login")
+                    Text(stringResource(R.string.change_login_button))
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -212,7 +214,7 @@ fun TerminalSettingsModal(
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
-                    label = { Text("Nowe Hasło") },
+                    label = { Text(stringResource(R.string.new_password_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                 )
@@ -222,13 +224,13 @@ fun TerminalSettingsModal(
                     enabled = newPassword.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                 ) {
-                    Text("Zmień Hasło")
+                    Text(stringResource(R.string.change_password_button))
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Zamknij", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.close_button), color = MaterialTheme.colorScheme.error)
             }
         },
         containerColor = MaterialTheme.colorScheme.surface
@@ -248,7 +250,7 @@ fun AddConfigModal(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nowa Konfiguracja", fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(R.string.new_config_title), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
@@ -256,7 +258,7 @@ fun AddConfigModal(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nazwa Sklepu") },
+                    label = { Text(stringResource(R.string.shop_name_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -270,7 +272,7 @@ fun AddConfigModal(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
                         value = currency,
                         onValueChange = {},
                         readOnly = true, // Force user to use the dropdown instead of typing
-                        label = { Text("Waluta") },
+                        label = { Text(stringResource(R.string.currency_label)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
@@ -295,11 +297,11 @@ fun AddConfigModal(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
         },
         confirmButton = {
             Button(onClick = { onConfirm(name, currency) }, enabled = name.isNotBlank()) {
-                Text("Dodaj")
+                Text(stringResource(R.string.add_button))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Anuluj", color = MaterialTheme.colorScheme.primary) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_button), color = MaterialTheme.colorScheme.primary) }
         },
         containerColor = MaterialTheme.colorScheme.surface
     )
@@ -324,7 +326,7 @@ fun ConfigCard(config: ConfigItem, onClick: () -> Unit, onDelete: () -> Unit) {
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Usuń Sklep",
+                    contentDescription = stringResource(R.string.delete_shop_desc),
                     tint = MaterialTheme.colorScheme.error
                 )
             }
@@ -355,8 +357,9 @@ fun ConfigCard(config: ConfigItem, onClick: () -> Unit, onDelete: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 // Format timestamp safely, removing trailing time strings if present
+                val formattedDate = config.creationtimestamp?.substringBefore("T") ?: "N/A"
                 Text(
-                    text = "Utworzono: ${config.creationtimestamp?.substringBefore("T") ?: "N/A"}",
+                    text = stringResource(R.string.created_at, formattedDate),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.secondary
                 )

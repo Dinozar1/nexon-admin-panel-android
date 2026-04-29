@@ -10,10 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.nexonpayadminpanel.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,14 +52,14 @@ fun LoginScreen(
         ) {
             // Header text
             Text(
-                text = "Panel Admina",
+                text = stringResource(R.string.login_title),
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
-                text = "Zaloguj się, aby zarządzać systemem",
+                text = stringResource(R.string.login_subtitle),
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
@@ -75,8 +77,8 @@ fun LoginScreen(
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Adres E-mail") },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Email Icon") },
+                label = { Text(stringResource(R.string.email_label)) },
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = stringResource(R.string.email_icon_desc)) },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
@@ -92,8 +94,8 @@ fun LoginScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Hasło") },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Password Icon") },
+                label = { Text(stringResource(R.string.password_label)) },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.password_icon_desc)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(), // Masks input as '***'
                 shape = RoundedCornerShape(12.dp),
@@ -122,7 +124,7 @@ fun LoginScreen(
                         modifier = Modifier.size(24.dp)
                     )
                 } else {
-                    Text("Zaloguj się", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.login_button_text), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

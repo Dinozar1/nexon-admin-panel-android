@@ -1,8 +1,10 @@
 // app/src/main/java/com/example/nexonpayadminpanel/ui/dashboard/DashboardViewModel.kt
 package com.example.nexonpayadminpanel.ui.dashboard
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.nexonpayadminpanel.R
 import com.example.nexonpayadminpanel.retrofit.ApiService
 import com.example.nexonpayadminpanel.retrofit.ChangeTerminalLoginRequest
 import com.example.nexonpayadminpanel.retrofit.ChangeTerminalPasswordRequest
@@ -17,8 +19,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class DashboardViewModel(
+    private val application: Application,
     private val apiService: ApiService
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     // Main UI state (Loading, Success with data, Error). Replays the current state to the UI.
     private val _uiState = MutableStateFlow<DashboardState>(DashboardState.Loading)
@@ -44,10 +47,10 @@ class DashboardViewModel(
                     val configs = response.body() ?: emptyList()
                     _uiState.value = DashboardState.Success(configs)
                 } else {
-                    _uiState.value = DashboardState.Error("Błąd serwera: ${response.code()}")
+                    _uiState.value = DashboardState.Error("${application.getString(R.string.error_server_code)} ${response.code()}")
                 }
             } catch (e: Exception) {
-                _uiState.value = DashboardState.Error("Błąd sieci: ${e.localizedMessage}")
+                _uiState.value = DashboardState.Error("${application.getString(R.string.error_network_prefix)} ${e.localizedMessage}")
             }
         }
     }
@@ -63,12 +66,12 @@ class DashboardViewModel(
                 val request = ChangeTerminalLoginRequest(newLogin)
                 val response = apiService.changeTerminalLogin(request)
                 if (response.isSuccessful) {
-                    _toastMessage.emit("Pomyślnie zmieniono login terminala!")
+                    _toastMessage.emit(application.getString(R.string.success_terminal_login))
                 } else {
-                    _toastMessage.emit("Błąd zmiany loginu: ${response.code()}")
+                    _toastMessage.emit("${application.getString(R.string.error_change_login)} ${response.code()}")
                 }
             } catch (e: Exception) {
-                _toastMessage.emit("Błąd sieci przy zmianie loginu.")
+                _toastMessage.emit(application.getString(R.string.error_network_terminal_login))
             }
         }
     }
@@ -82,12 +85,12 @@ class DashboardViewModel(
                 val request = ChangeTerminalPasswordRequest(newPassword)
                 val response = apiService.changeTerminalPassword(request)
                 if (response.isSuccessful) {
-                    _toastMessage.emit("Pomyślnie zmieniono hasło terminala!")
+                    _toastMessage.emit(application.getString(R.string.success_terminal_password))
                 } else {
-                    _toastMessage.emit("Błąd zmiany hasła: ${response.code()}")
+                    _toastMessage.emit("${application.getString(R.string.error_change_password)} ${response.code()}")
                 }
             } catch (e: Exception) {
-                _toastMessage.emit("Błąd sieci przy zmianie hasła.")
+                _toastMessage.emit(application.getString(R.string.error_network_terminal_password))
             }
         }
     }
@@ -100,13 +103,13 @@ class DashboardViewModel(
             try {
                 val response = apiService.addNewConfig(AddConfigRequest(name, currency))
                 if (response.isSuccessful) {
-                    _toastMessage.emit("Dodano nową konfigurację!")
+                    _toastMessage.emit(application.getString(R.string.success_config_added))
                     fetchConfigs() // Auto-refresh the list after a successful addition
                 } else {
-                    _toastMessage.emit("Błąd dodawania: ${response.code()}")
+                    _toastMessage.emit("${application.getString(R.string.error_add_config)} ${response.code()}")
                 }
             } catch (e: Exception) {
-                _toastMessage.emit("Błąd sieci.")
+                _toastMessage.emit(application.getString(R.string.error_network_general))
             }
         }
     }
@@ -117,13 +120,13 @@ class DashboardViewModel(
             try {
                 val response = apiService.deleteConfig(DeleteConfigRequest(configId))
                 if (response.isSuccessful) {
-                    _toastMessage.emit("Usunięto konfigurację: $configId")
+                    _toastMessage.emit("${application.getString(R.string.success_config_deleted)} $configId")
                     fetchConfigs() // Auto-refresh the list after a successful deletion
                 } else {
-                    _toastMessage.emit("Błąd usuwania.")
+                    _toastMessage.emit(application.getString(R.string.error_delete_config))
                 }
             } catch (e: Exception) {
-                _toastMessage.emit("Błąd sieci.")
+                _toastMessage.emit(application.getString(R.string.error_network_general))
             }
         }
     }

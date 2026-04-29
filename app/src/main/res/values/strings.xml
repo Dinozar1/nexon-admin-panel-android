@@ -1,3 +1,80 @@
 <resources>
-    <string name="app_name">NexonPayAdminPanel</string>
+    <string name="app_name">NexonPay Admin Panel</string>
+
+    <string name="back_button_desc">Wróć</string>
+    <string name="add_button">Dodaj</string>
+    <string name="cancel_button">Anuluj</string>
+    <string name="delete_button">Usuń</string>
+    <string name="close_button">Zamknij</string>
+    <string name="refresh_desc">Odśwież</string>
+
+    <string name="login_title">Panel Admina</string>
+    <string name="login_subtitle">Zaloguj się, aby zarządzać systemem</string>
+    <string name="email_label">Adres E-mail</string>
+    <string name="password_label">Hasło</string>
+    <string name="login_button_text">Zaloguj się</string>
+    <string name="email_icon_desc">Ikona Email</string>
+    <string name="password_icon_desc">Ikona Hasła</string>
+
+    <string name="dashboard_title">Twoje Konfiguracje</string>
+    <string name="settings_desc">Ustawienia</string>
+    <string name="add_config_desc">Dodaj Konfigurację</string>
+    <string name="empty_configs_message">Brak konfiguracji. Dodaj pierwszą!</string>
+    <string name="delete_shop_desc">Usuń Sklep</string>
+    <string name="created_at">Utworzono: %1$s</string>
+
+    <string name="new_config_title">Nowa Konfiguracja</string>
+    <string name="shop_name_label">Nazwa Sklepu</string>
+    <string name="currency_label">Waluta</string>
+
+    <string name="delete_config_title">Usunąć konfigurację?</string>
+    <string name="delete_config_text">Czy na pewno chcesz usunąć sklep \'%1$s\'? Tego nie da się cofnąć.</string>
+
+    <string name="terminal_settings_title">Ustawienia Terminala</string>
+    <string name="terminal_settings_subtitle">Możesz zaktualizować dane dostępowe dla terminala.</string>
+    <string name="new_login_label">Nowy Login</string>
+    <string name="new_password_label">Nowe Hasło</string>
+    <string name="change_login_button">Zmień Login</string>
+    <string name="change_password_button">Zmień Hasło</string>
+
+    <string name="shop_stats_title">Statystyki Sklepu</string>
+    <string name="stats_operations">Operacje:</string>
+    <string name="stats_clients">Klienci:</string>
+    <string name="stats_volume">Wolumen:</string>
+    <string name="total_balance_label">Całkowite Saldo:</string>
+    <string name="show_balance_desc">Pokaż saldo</string>
+    <string name="connected_wallets_title">Podpięte Portfele</string>
+    <string name="add_wallet_desc">Dodaj Portfel</string>
+
+    <string name="new_wallet_dialog_title">Nowy Portfel</string>
+    <string name="select_crypto_label">Wybierz Kryptowalutę</string>
+    <string name="select_network_label">Wybierz Sieć</string>
+    <string name="public_key_label">Adres (Public Key)</string>
+
+    <string name="delete_wallet_dialog_title">Usunąć portfel?</string>
+    <string name="delete_wallet_dialog_text">Czy na pewno chcesz usunąć ten portfel?</string>
+
+    <string name="error_network">Błąd sieci</string>
+    <string name="error_network_prefix">Błąd sieci:</string>
+    <string name="error_network_general">Błąd sieci.</string>
+    <string name="error_fetch_data">Błąd pobierania danych</string>
+    <string name="error_server_code">Błąd serwera:</string>
+    <string name="error_empty_fields">Wypełnij wszystkie pola!</string>
+    <string name="error_invalid_credentials">Błędne dane logowania.</string>
+    <string name="error_balance">Błąd salda</string>
+    <string name="error_delete_code">Błąd usuwania:</string>
+    <string name="error_add_code">Błąd dodawania:</string>
+    <string name="error_add_config">Błąd dodawania konfiguracji:</string>
+    <string name="error_delete_config">Błąd usuwania konfiguracji.</string>
+    <string name="error_change_login">Błąd zmiany loginu:</string>
+    <string name="error_change_password">Błąd zmiany hasła:</string>
+    <string name="error_network_terminal_login">Błąd sieci przy zmianie loginu.</string>
+    <string name="error_network_terminal_password">Błąd sieci przy zmianie hasła.</string>
+
+    <string name="success_wallet_added">Dodano portfel</string>
+    <string name="success_wallet_deleted">Usunięto portfel</string>
+    <string name="success_config_added">Dodano nową konfigurację!</string>
+    <string name="success_config_deleted">Usunięto konfigurację:</string>
+    <string name="success_terminal_login">Pomyślnie zmieniono login terminala!</string>
+    <string name="success_terminal_password">Pomyślnie zmieniono hasło terminala!</string>
 </resources>

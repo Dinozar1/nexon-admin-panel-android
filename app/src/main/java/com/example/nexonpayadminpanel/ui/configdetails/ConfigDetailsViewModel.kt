@@ -1,8 +1,10 @@
 // app/src/main/java/com/example/nexonpayadminpanel/ui/configdetails/ConfigDetailsViewModel.kt
 package com.example.nexonpayadminpanel.ui.configdetails
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.nexonpayadminpanel.R
 import com.example.nexonpayadminpanel.retrofit.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -16,7 +18,10 @@ data class ConfigDetailsState(
     val error: String? = null
 )
 
-class ConfigDetailsViewModel(private val apiService: ApiService) : ViewModel() {
+class ConfigDetailsViewModel(
+    private val application: Application,
+    private val apiService: ApiService
+) : AndroidViewModel(application) {
 
     // Main UI state
     private val _uiState = MutableStateFlow(ConfigDetailsState())
@@ -55,10 +60,16 @@ class ConfigDetailsViewModel(private val apiService: ApiService) : ViewModel() {
                         wallets = configDataRes.body()?.entries ?: emptyList()
                     )
                 } else {
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = "Błąd pobierania danych")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = application.getString(R.string.error_fetch_data)
+                    )
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = "Błąd sieci")
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = application.getString(R.string.error_network)
+                )
             }
         }
     }
@@ -79,10 +90,10 @@ class ConfigDetailsViewModel(private val apiService: ApiService) : ViewModel() {
                     val body = res.body()
                     _balance.value = "${body?.totalBalanceFiat ?: "0.00"} ${body?.fiatCurrency ?: ""}"
                 } else {
-                    _toastMessage.emit("Błąd salda")
+                    _toastMessage.emit(application.getString(R.string.error_balance))
                 }
             } catch (e: Exception) {
-                _toastMessage.emit("Błąd sieci")
+                _toastMessage.emit(application.getString(R.string.error_network))
             }
         }
     }
@@ -101,13 +112,13 @@ class ConfigDetailsViewModel(private val apiService: ApiService) : ViewModel() {
 
                 val res = apiService.deleteSetting(req)
                 if (res.isSuccessful) {
-                    _toastMessage.emit("Usunięto portfel")
+                    _toastMessage.emit(application.getString(R.string.success_wallet_deleted))
                     loadInitialData(_uiState.value.configName) // Auto-refresh the wallet list
                 } else {
-                    _toastMessage.emit("Błąd usuwania: ${res.code()}")
+                    _toastMessage.emit("${application.getString(R.string.error_delete_code)} ${res.code()}")
                 }
             } catch (e: Exception) {
-                _toastMessage.emit("Błąd sieci")
+                _toastMessage.emit(application.getString(R.string.error_network))
             }
         }
     }
@@ -143,13 +154,13 @@ class ConfigDetailsViewModel(private val apiService: ApiService) : ViewModel() {
                 val req = PostNewSettingRequest(cryptoId, networkName, publicKey, _uiState.value.configName)
                 val res = apiService.postNewSetting(req)
                 if (res.isSuccessful) {
-                    _toastMessage.emit("Dodano portfel")
+                    _toastMessage.emit(application.getString(R.string.success_wallet_added))
                     loadInitialData(_uiState.value.configName) // Auto-refresh the wallet list
                 } else {
-                    _toastMessage.emit("Błąd dodawania: ${res.code()}")
+                    _toastMessage.emit("${application.getString(R.string.error_add_code)} ${res.code()}")
                 }
             } catch (e: Exception) {
-                _toastMessage.emit("Błąd sieci")
+                _toastMessage.emit(application.getString(R.string.error_network))
             }
         }
     }

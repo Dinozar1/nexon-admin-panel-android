@@ -22,6 +22,7 @@ object AdminViewModelProvider {
 
             // 2. Build the ViewModel and inject the necessary tools (API and Token storage)
             LoginViewModel(
+                application = application,
                 apiService = application.apiService,
                 tokenManager = application.tokenManager
             )
@@ -33,6 +34,7 @@ object AdminViewModelProvider {
 
             // This ViewModel only needs network access, not the token manager directly
             DashboardViewModel(
+                application = application,
                 apiService = application.apiService
             )
         }
@@ -42,6 +44,7 @@ object AdminViewModelProvider {
             val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as AdminApplication)
 
             ConfigDetailsViewModel(
+                application = application,
                 apiService = application.apiService
             )
         }

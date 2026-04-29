@@ -1,8 +1,10 @@
 // app/src/main/java/com/example/nexonpayadminpanel/ui/login/LoginViewModel.kt
 package com.example.nexonpayadminpanel.ui.login
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.nexonpayadminpanel.R
 import com.example.nexonpayadminpanel.data.TokenManager
 import com.example.nexonpayadminpanel.retrofit.ApiService
 import com.example.nexonpayadminpanel.retrofit.LoginRequest
@@ -12,9 +14,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
+    private val application: Application,
     private val apiService: ApiService,
     private val tokenManager: TokenManager
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     // Internal mutable state. Only the ViewModel can change this.
     private val _uiState = MutableStateFlow<LoginState>(LoginState.Idle)
@@ -26,7 +29,7 @@ class LoginViewModel(
     fun login(email: String, pass: String) {
         // Basic input validation
         if (email.isBlank() || pass.isBlank()) {
-            _uiState.value = LoginState.Error("Wypełnij wszystkie pola!")
+            _uiState.value = LoginState.Error(application.getString(R.string.error_empty_fields))
             return
         }
 
@@ -50,15 +53,16 @@ class LoginViewModel(
                         _uiState.value = LoginState.Success
                     } else {
                         // Handle logical errors from the backend (e.g., wrong password)
-                        _uiState.value = LoginState.Error(body?.message ?: "Błędne dane logowania.")
+                        val errorMsg = body?.message ?: application.getString(R.string.error_invalid_credentials)
+                        _uiState.value = LoginState.Error(errorMsg)
                     }
                 } else {
                     // Handle HTTP errors (e.g., 401 Unauthorized, 500 Server Error)
-                    _uiState.value = LoginState.Error("Błąd serwera: ${response.code()}")
+                    _uiState.value = LoginState.Error("${application.getString(R.string.error_server_code)} ${response.code()}")
                 }
             } catch (e: Exception) {
                 // Catch network exceptions (e.g., no internet connection, timeout)
-                _uiState.value = LoginState.Error("Błąd sieci: ${e.localizedMessage}")
+                _uiState.value = LoginState.Error("${application.getString(R.string.error_network_prefix)} ${e.localizedMessage}")
             }
         }
     }
